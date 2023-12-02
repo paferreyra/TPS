@@ -1,0 +1,170 @@
+%% BASE DE CONOCIMIENTO
+%duenio(Duenio,Juguete,AniosTenencia).
+duenio(andy,woody,8).
+duenio(andy,buzz,5).
+duenio(sam,jessie,3).
+
+%jueguete(Juguete,Forma).
+% deTrapo(tematica)
+% deAccion(tematica, partes)
+% miniFiguras(tematica, cantidadDeFiguras)
+% caraDePapa(partes)
+juguete(woody, deTrapo(vaquero)).
+juguete(jessie, deTrapo(vaquero)).
+juguete(buzz, deAccion(espacial, [original(casco)])).
+juguete(soldados, miniFiguras(soldado, 60)).
+juguete(monitosEnBarril, miniFiguras(mono, 50)).
+juguete(seniorCaraDePapa, caraDePapa([ original(pieIzquierdo), original(pieDerecho), repuesto(nariz) ])).
+
+esRaro(deAccion(stacyMalibu, 1, [sombrero])).
+esRaro(deAccion(espacial, [original(casco)])).
+
+esColeccionista(sam).
+esColeccionista(andy).
+
+%% PUNTO 1A
+tematica(Juguete,Tematica):-
+    juguete(Juguete,deTrapo(Tematica)).
+
+tematica(Juguete,Tematica):-
+    juguete(Juguete,deAccion(Tematica,_)).
+
+tematica(Juguete,Tematica):-
+    juguete(Juguete,miniFiguras(Tematica,_)).
+
+tematica(Juguete,caraDePapa):-
+    juguete(Juguete,caraDePapa(_)).
+
+%%PUNTO 1B
+esDePlastico(Juguete):-
+    juguete(Juguete,caraDePapa(_)).
+esDePlastico(Juguete):-
+    juguete(Juguete,miniFiguras(_,_)).
+
+%%PUNTO 1C
+esDeColeccion(Juguete):-
+    juguete(Juguete,Forma),
+    formaJugueteColeccionista(Forma),
+    esRaro(Forma).
+
+esDeColeccion(Juguete):-
+    juguete(Juguete,deTrapo(_)).
+
+formaJugueteColeccionista(deAccion(_,_)).
+formaJugueteColeccionista(caraDePapa(_)).
+
+
+
+%%PUNTO 2
+amigoFiel(Duenio,Juguete):-
+    duenio(Duenio,Juguete,Anio),
+    not(esDePlastico(Juguete)),
+    not((duenio(Duenio,_,OtroAnio),Anio < OtroAnio)).
+
+%%PUNTO 3
+superValioso(Juguete):-
+    esDeColeccion(Juguete),
+    todasPiezasOriginales(Juguete),
+    not(duenioColeccionista(Juguete)).
+
+todasPiezasOriginales(Juguete):-
+    juguete(Juguete,Forma),
+    piezas(Forma,Piezas),
+    forall(parteOriginal(PiezaOriginal),member(PiezaOriginal, Piezas)).
+
+parteOriginal(original(_)).
+piezas(deAccion(_,Piezas),Piezas).
+piezas(caraDePapa(Piezas),Piezas).
+
+duenioColeccionista(Juguete):-
+    duenio(Duenio,Juguete,_),
+    esColeccionista(Duenio).
+
+%%PUNTO 4
+duoDinamico(Duenio,Juguete,OtroJuguete):-
+    duenio(Duenio,Juguete,_),
+    duenio(Duenio,OtroJuguete,_),
+    buenaPareja(Juguete,OtroJuguete),
+    Juguete \= OtroJuguete.
+
+buenaPareja(Juguete,OtroJuguete):-
+    tematica(Juguete,Tematica),
+    tematica(OtroJuguete,Tematica).
+
+buenaPareja(woody,buzz).
+
+%siempreBuenaPareja(woody,buzz):-
+%    buenaPareja(buzz,woody).
+
+%%PUNTO 5
+felicidad(Duenio,Felicidad):-    
+    duenio(Duenio,Juguete,_),
+    findall(CantFelicidad,a(Juguete,CantFelicidad),ListaFeliz),
+    sum_list(ListaFeliz,Felicidad).
+
+a(Juguete,CantFelicidad):-
+    juguete(Juguete,Forma), 
+    felicidadOtorgada(Juguete,Forma,CantFelicidad).
+
+felicidadOtorgada(_,miniFiguras(_,CantidadDeFiguras),Felicidad):-
+    Felicidad is 20 * CantidadDeFiguras.
+
+felicidadOtorgada(_,caraDePapa(Piezas),Felicidad):-
+    cantidadPiezasOriginales(Piezas,CantidadOriginales),
+    cantidadPiezasRepuesto(Piezas,CantidadRepuesto),
+    Felicidad is CantidadOriginales * 5 + CantidadRepuesto * 8.
+
+felicidadOtorgada(_,deTrapo(_),100).
+
+felicidadOtorgada(Juguete,deAccion(_,_),120):-
+    esDeColeccion(Juguete),
+    duenio(Duenio,Juguete,_),
+    esColeccionista(Duenio).
+
+felicidadOtorgada(_,deAccion(_,_),100).
+
+cantidadPiezasOriginales(Piezas,CantidadOriginales):-
+    findall(PiezaOriginal,busquedaOriginal(Piezas,PiezaOriginal),ListaOriginales),
+    length(ListaOriginales, CantidadOriginales).
+
+busquedaOriginal(Piezas,PiezaOriginal):-
+    parteOriginal(PiezaOriginal),
+    member(PiezaOriginal,Piezas).
+
+cantidadPiezasRepuesto(Piezas,CantidadRepuesto):-
+    findall(PiezasRepuesto,not(busquedaOriginal(Piezas,PiezasRepuesto)),ListaRepuesto),
+    length(ListaRepuesto, CantidadRepuesto).
+
+%%PUNTO 6
+puedeJugarCon(Alguien,Juguete):-
+    duenio(Alguien,Juguete,_).
+
+puedeJugarCon(Alguien,Juguete):-
+    puedeJugarCon(OtroAlguien,Juguete),
+    puedePrestarA(OtroAlguien,Alguien).
+
+puedePrestarA(Alguien,OtroAlguien):-
+    cantidadJuguetes(Alguien,Cantidad1),
+    cantidadJuguetes(OtroAlguien,Cantidad2),
+    Cantidad1 > Cantidad2.
+
+cantidadJuguetes(Duenio,Cantidad):-
+    duenio(Duenio,_,_),
+    findall(Juguete,duenio(Duenio,Juguete,_),ListaJuguetes),
+    length(ListaJuguetes,Cantidad).
+
+%%PUNTO 7
+podriaDonar(Duenio,SinRepes,CantidadFelicidad):-
+    duenio(Duenio,_,_),
+    findall(Juguete,b(Duenio,Juguete,CantidadFelicidad),ListaJuguetes),
+    list_to_set(ListaJuguetes,SinRepes).
+    
+
+b(Duenio,Juguete,CantidadFelicidad):-
+    duenio(Duenio,Juguete,_),
+    felicidad(Duenio,Felicidad),
+    Felicidad < CantidadFelicidad.
+%%PUNTO 8
+%%Existe polimorfirmo en el punto 5 con la felicidadOtorgada,
+%ya que si se quiere agregar un predicado mas con un functor distinto
+%se puede hacer y no afectaria a la demas resolucion.
