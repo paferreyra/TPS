@@ -1,0 +1,139 @@
+% BASE DE CONOCIMIENTO
+
+%apareceEn( Personaje, Episodio, Lado de la luz).
+apareceEn( luke, elImperioContrataca, luminoso).
+apareceEn( luke, unaNuevaEsperanza, luminoso).
+apareceEn( vader, unaNuevaEsperanza, oscuro).
+apareceEn( vader, laVenganzaDeLosSith, luminoso).
+apareceEn( vader, laAmenazaFantasma, luminoso).
+apareceEn( c3po, laAmenazaFantasma, luminoso).
+apareceEn( c3po, unaNuevaEsperanza, luminoso).
+apareceEn( c3po, elImperioContrataca, luminoso).
+apareceEn( chewbacca, elImperioContrataca, luminoso).
+apareceEn( yoda, elAtaqueDeLosClones, luminoso).
+apareceEn( yoda, laAmenazaFantasma, luminoso).
+%Maestro(Personaje)
+maestro(luke).
+maestro(leia).
+maestro(vader).
+maestro(yoda).
+maestro(rey).
+maestro(duku).
+%caracterizacion(Personaje,Aspecto).
+%aspectos:
+% ser(Especie,Tamaño)
+% humano
+% robot(Forma)
+caracterizacion(chewbacca,ser(wookiee,10)).
+caracterizacion(luke,humano).
+caracterizacion(vader,humano).
+caracterizacion(yoda,ser(desconocido,5)).
+caracterizacion(jabba,ser(hutt,20)).
+caracterizacion(c3po,robot(humanoide)).
+caracterizacion(bb8,robot(esfera)).
+caracterizacion(r2d2,robot(secarropas)).
+%elementosPresentes(Episodio, Dispositivos)
+elementosPresentes(laAmenazaFantasma, [sableLaser]).
+elementosPresentes(elAtaqueDeLosClones, [sableLaser, clon]).
+elementosPresentes(laVenganzaDeLosSith, [sableLaser, mascara,
+estrellaMuerte]).
+elementosPresentes(unaNuevaEsperanza, [estrellaMuerte,
+sableLaser, halconMilenario]).
+elementosPresentes(elImperioContrataca, [mapaEstelar,
+estrellaMuerte] ).
+%precede(EpisodioAnterior,EpisodioSiguiente)
+precedeA(laAmenazaFantasma,elAtaqueDeLosClones).
+precedeA(elAtaqueDeLosClones,laVenganzaDeLosSith).
+precedeA(laVenganzaDeLosSith,unaNuevaEsperanza).
+precedeA(unaNuevaEsperanza,elImperioContrataca).
+
+%Personajes en general
+aparecioAnteriormente(Personaje):-
+    apareceEn(Personaje,_,_).
+
+%Heroe
+esUnJedi(Personaje):-
+    caracterizacion(Personaje,_),
+    maestro(Personaje),
+    not(apareceEn(Personaje,_,oscuro)).
+%Villano
+
+tieneAmbiguedad(Personaje):-
+    apareceEn(Personaje,Episodio,luminoso),
+    apareceEn(Personaje,otroEpisodio,oscuro),
+    Episodio == otroEpisodio.
+
+tieneAmbiguedad(Personaje):-
+    apareceEn(Personaje,Episodio1,luminoso),
+    apareceEn(Personaje,Episodio2,oscuro),
+    precedeA(Episodio1,Episodio2).
+%Extra
+aspectoExotico(Personaje):-
+    caracterizacion(Personaje,ser(desconocido,_)).
+aspectoExotico(Personaje):-
+    caracterizacion(Personaje,ser(_,Tamanio)),
+    Tamanio > 15.
+aspectoExotico(Personaje):-
+    caracterizacion(Personaje,robot(Forma)),
+    Forma \= esfera.
+
+vinculadoCon(Personaje,otroPersonaje,unEpisodio):-
+    apareceEn(Personaje,unEpisodio,_),
+    apareceEn(otroPersonaje,unEpisodio,_),
+    Personaje \= otroPersonaje.
+
+%dispositivo
+
+
+
+estuvoEnMasDeEpisodiosP(Personaje):-
+    aparecioAnteriormente(Personaje),
+    findall(Episodio,apareceEn(Personaje,Episodio,_),Episodios),
+    cantidadDeAparicionesMayorA(Episodios,1).
+  
+estuvoEnMasDeEpisodiosD(Dispositivo):-   
+    elementosPresentes(_,Dispositivos),
+    member(Dispositivo,Dispositivos),
+    findall(Episodio,apareceEnEpisodio(Dispositivo,Episodio),Episodios),
+    cantidadDeAparicionesMayorA(Episodios,2).
+
+apareceEnEpisodio(Dispositivo,Episodio):-
+    elementosPresentes(Episodio,Dispositivos),
+    member(Dispositivo,Dispositivos).
+
+cantidadDeAparicionesMayorA(Episodios,Cantidad):-
+    length(Episodios,CantidadEpisodios),
+    CantidadEpisodios > Cantidad.
+
+%%Unificacion
+nuevoEpisodio(Heroe,Villano,Extra, Dispositivo):-
+    cosasDeHeroe(Heroe),
+    cosasDeVillano(Villano),
+    cosasDeExtra(Extra,Heroe),
+    estuvoEnMasDeEpisodiosD(Dispositivo),
+    Heroe \= Villano,
+    Heroe \= Extra,
+    Villano \= Extra.
+
+nuevoEpisodio(Heroe,Villano,Extra,Dispositivo):-
+    cosasDeHeroe(Heroe),
+    cosasDeVillano(Villano),
+    cosasDeExtra(Extra,Villano),
+    estuvoEnMasDeEpisodiosD(Dispositivo),
+    Heroe \= Villano,
+    Heroe \= Extra,
+    Villano \= Extra.
+
+cosasDeHeroe(Heroe):-
+    aparecioAnteriormente(Heroe),
+    esUnJedi(Heroe).
+
+cosasDeVillano(Villano):-
+    aparecioAnteriormente(Villano),
+    estuvoEnMasDeEpisodiosP(Villano),
+    tieneAmbiguedad(Villano).
+
+cosasDeExtra(Extra,Personaje):-
+    aparecioAnteriormente(Extra),
+    aspectoExotico(Extra),
+    vinculadoCon(Extra,Personaje). 
