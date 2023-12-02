@@ -1,0 +1,174 @@
+%%PUNTO 1
+%%BASE DE CONOCIMIENTO
+%%visitante(Nombre,Dinero,Edad).
+visitante(eusebio,3000,80).
+visitante(carmela,0,80).
+
+%%grupoFamiliar(Visitante,Grupo).
+
+grupoFamiliar(eusebio,viejitos).
+grupoFamiliar(carmela,viejitos).
+
+%%sentimiento(Visitante,Hambre,Aburrimiento).
+sentimiento(eusebio,50,0).
+sentimiento(carmela,0,25).
+
+%%puestosDeComida(Comida,Precio).
+puestosDeComida(hamburguesa,2000).
+puestosDeComida(panchitoConPapas,1500).
+puestosDeComida(lomitoCompleto,2500).
+puestosDeComida(caramelo,0).
+
+%%atraccion(TipoDeAtraccion,NombreAtraccion,CoeficienteDeLanzamiento).
+atraccion(autitosChocadores,tranquila(chicoYAdulto)).
+atraccion(casaEmbrujada,tranquila(chicoYAdulto)).
+atraccion(laberinto,tranquila(chicoYAdulto)).
+atraccion(tobogan,tranquila(chico)).  %%SoloChicos  
+atraccion(calesita,tranquila(chico)).  %%SoloChicos
+    
+
+%%atraccion(intensa(NombreAtraccion,CoeficienteDeLanzamiento)).
+atraccion(barcoPirata,intensa(14)).
+atraccion(tazasChinas,intensa(6)).
+atraccion(simuladorTresD,intensa(2)).
+
+%%atraccion(montaniaRusa(NombreMontania,CantidadDeGirosInvertidos,DuracionEnSegundos)).
+atraccion(abismoMortalRecargada,montaniaRusa(3,134)).
+atraccion(paseoPorElBosque,montaniaRusa(0,45)).
+
+%%atraccion(acuatica(N°MesQueSeHabilita,N°MesQueCierra,NombreAtraccion)).
+atraccion(elTorpedoSalpicon,acuatica(9,3)).
+atraccion(esperoQueHayasTraidoUnaMudaDeRopa,acuatica(9,3)).
+
+%%SABER SI ES CHICO
+
+esChico(Visitante):-
+    visitante(Visitante,_,Edad),
+    Edad < 13.
+
+%%PUNTO 2
+bienestarVisitante(Visitante,felicidadPlena):-
+    sentimiento(Visitante,0,0),
+    not(vieneSolo(Visitante)).
+
+bienestarVisitante(Visitante,podriaEstarMejor):-
+    sentimiento(Visitante,0,0),
+    vieneSolo(Visitante).
+
+bienestarVisitante(Visitante,podriaEstarMejor):-
+    sumaDeSentimientos(Visitante,Resultado),
+    between(1, 50, Resultado).
+
+bienestarVisitante(Visitante,entretenerse):-
+    sumaDeSentimientos(Visitante,Resultado),
+    between(51, 99, Resultado).
+
+bienestarVisitante(Visitante,quiereIrseACasa):-
+    sumaDeSentimientos(Visitante,Resultado),
+    Resultado >= 100.
+
+sumaDeSentimientos(Visitante,Resultado):-
+    sentimiento(Visitante,Hambre,Aburrimiento),
+    Resultado is Hambre + Aburrimiento.
+    
+vieneSolo(Visitante):-
+    grupoFamiliar(Visitante,Grupo),
+    grupoFamiliar(OtroVisitante,Grupo),
+    Visitante \= OtroVisitante.
+
+
+%%PUNTO 3
+seSatisfacenCon(Grupo,Comida):-
+    grupoFamiliar(_,Grupo),
+    puestosDeComida(Comida,_),
+    forall(grupoFamiliar(Visitante,Grupo),seSatisfaceCon(Visitante,Comida)).
+
+seSatisfaceCon(Visitante,Comida):-
+    tieneDineroPara(Visitante,Comida),
+    satisfaceA(Visitante,Comida).
+
+tieneDineroPara(Visitante,Comida):-
+    visitante(Visitante,Dinero,_),
+    puestosDeComida(Comida,Sale),
+    Dinero >= Sale.    
+
+satisfaceA(Visitante,hamburguesa):-
+    sentimiento(Visitante,Hambre,_),
+    Hambre =< 50.
+
+satisfaceA(Visitante,panchito):-
+    esChico(Visitante).
+
+satisfaceA(_,lomitoCompleto).
+
+satisfaceA(Visitante,caramelo):-
+    not(puedePagarComida(Visitante)).
+
+puedePagarComida(Visitante):-
+    tieneDineroPara(Visitante,Comida),
+    Comida \= caramelos.
+       
+%%PUNTO 4
+produceLluviaHamburguesaEn(Visitante,Nombre):-
+    tieneDineroPara(Visitante,hamburguesa),
+    atraccion(Nombre,Atraccion),
+    atraccionQueLlueve(Visitante,Nombre,Atraccion).
+
+atraccionQueLlueve(_,_,intensa(Lanzamiento)):-
+    Lanzamiento >= 10.
+
+atraccionQueLlueve(_,tobogan,_).
+
+atraccionQueLlueve(Visitante,_,Montania):-
+    esPeligrosaPara(Visitante,Montania).
+
+esPeligrosaPara(Visitante,montaniaRusa(_,Duracion)):-
+    esChico(Visitante),
+    Duracion >= 60.
+
+esPeligrosaPara(Visitante,montaniaRusa(Giros,_)):-
+    esAdulto(Visitante),
+    not((atraccion(_,montaniaRusa(OtrosGiros,_)),Giros < OtrosGiros)),
+    bienestarVisitante(Visitante,Bienestar),
+    Bienestar \= entretenerse.
+
+esAdulto(Visitante):-
+    not(esChico(Visitante)).
+
+
+%%PUNTO 5
+opcionEntretenimiento(todos,Visitante,Opcion):-
+    tieneDineroPara(Visitante,Opcion).
+
+opcionEntretenimiento(todos,Visitante,Opcion):-
+    esChico(Visitante),
+    atraccion(Opcion,tranquila(chico)).
+
+opcionEntretenimiento(todos,_,Opcion):-
+    atraccion(Opcion,tranquila(chicoYAdulto)).
+
+opcionEntretenimiento(todos,Visitante,Opcion):-
+    esAdulto(Visitante),
+    loAcompaniaUnChico(Visitante),
+    atraccion(Opcion,tranquila(chico)).
+
+opcionEntretenimiento(todos,_,Opcion):-
+    atraccion(Opcion,intensa(_,_)).
+
+opcionEntretenimiento(todos,Visitante,Opcion):-
+    grupoFamiliar(Visitante,_),
+    atraccion(Opcion,Montania),
+    not(esPeligrosaPara(Visitante,Montania)).    
+
+opcionEntretenimiento(Mes,Visitante,Opcion):-
+    visitaEnElMes(Visitante,Mes),
+    atraccion(Opcion,acuatica(MesApertura,MesCierre)),
+    between(MesApertura,MesCierre,Mes).
+    
+visitaEnElMes(eusebio,9).
+visitaEnElMes(carmela,8).
+
+loAcompaniaUnChico(Visitante):-
+    grupoFamiliar(Visitante,Grupo),
+    grupoFamiliar(OtroVisitante,Grupo),
+    esChico(OtroVisitante).    
