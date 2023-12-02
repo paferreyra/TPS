@@ -1,0 +1,113 @@
+%% BASE DE CONOCIMIENTO
+%vocaloid(Persona,cancion(Nombre,Duracion)).
+vocaloid(megurineLuka,cancion(nightFever,4)).
+vocaloid(megurineLuka,cancion(foreverYoung,5)).
+vocaloid(hatsuneMiku,cancion(tellYourWorld,4)).
+vocaloid(gumi,cancion(foreverYoung,4)).
+vocaloid(gumi,cancion(tellYourWorld,5)).
+vocaloid(seeU,cancion(novemberRain,6)).
+vocaloid(seeU,cancion(nightFever,5)).
+
+%%PARTE A
+%%PUNTO 1
+esNovedoso(Persona):-
+    sabeMasDeUna(Persona),
+    duracionCanciones(Persona,Tiempo),
+    Tiempo < 15.
+
+sabeMasDeUna(Persona):-
+    vocaloid(Persona,Cancion1),
+    vocaloid(Persona,Cancion2),
+    Cancion1 \= Cancion2.  
+
+duracionCanciones(Persona,Tiempo):-
+    findall(TiempoCancion,tiempoDeCancion(Persona,TiempoCancion),Duraciones),
+    sum_list(Duraciones, Tiempo).
+
+tiempoDeCancion(Persona,TiempoCancion):-
+    vocaloid(Persona,Cancion),
+    tiempo(Cancion,TiempoCancion).
+
+tiempo(cancion(_,Tiempo),Tiempo).
+
+%%PUNTO 2
+esAcelerado(Persona):-
+    vocaloid(Persona,_),
+    not((tiempoDeCancion(Persona,TiempoCancion),TiempoCancion =< 4)).
+
+%%PARTE B
+%%PUNTO 1
+%concierto(NombreConcierto,Pais,CantidadFama,Tipo).
+%tipo(gigante(CantidadMinCanciones,CantidadPedida)).
+%tipo(mediano(CantidadPedida)).
+%tipo(pequeño(CantidadPedida)).
+concierto(mikuExpo,estadosUnidos,2000,gigante(2,6)).
+concierto(magicalMirai,japon,3000,gigante(3,10)).
+concierto(vocalektVisions,estadosUnidos,1000,mediano(9)).
+concierto(mikuFest,argentina,100,pequenio(4)).
+
+%%PUNTO2
+puedeParticiparDe(Concierto,Persona):-
+    concierto(Concierto,_,_,Tipo),
+    requisitosConcierto(Persona,Tipo),
+    Persona \= hatsuneMiku.
+
+puedeParticiparDe(_,hatsuneMiku).
+
+requisitosConcierto(Persona,gigante(MinCanciones,TiempoPedido)):-
+    vocaloid(Persona,Canciones),
+    cantidadCanciones(Persona,CantidadCanciones),
+    duracionCanciones(Canciones,Duracion),
+    CantidadCanciones >= MinCanciones,
+    Duracion > TiempoPedido.
+    
+requisitosConcierto(Persona,mediano(TiempoPedido)):-
+    vocaloid(Persona,Canciones),
+    duracionCanciones(Canciones,Duracion),
+    Duracion < TiempoPedido.
+
+requisitosConcierto(Persona,pequenio(TiempoPedido)):-
+    tiempoDeCancion(Persona,Tiempo),
+    Tiempo > TiempoPedido.
+
+cantidadCanciones(Persona,CantidadCanciones):-
+    findall(Cancion,vocaloid(Persona,Cancion),Canciones),
+    length(Canciones, CantidadCanciones).
+
+%%PUNTO 3
+masFamoso(Persona):-   
+    famoso(Persona,NivelFamoso),
+    forall(famoso(Persona,Nivel),NivelFamoso >= Nivel).
+   
+famoso(Persona,NivelFamoso):-    
+    nivelDeFama(Persona,Nivel),
+    cantidadCanciones(Persona,CantidadCanciones),
+    NivelFamoso is Nivel * CantidadCanciones.
+
+nivelDeFama(Persona,Nivel):-
+    vocaloid(Persona,_),
+    concierto(Concierto,_,_,_),
+    findall(Fama,(recolectaFama(Persona,Concierto,Fama)),PuntosFama),
+    sum_list(PuntosFama,Nivel).
+
+recolectaFama(Persona,Concierto,Fama):-
+    concierto(Concierto,_,Fama,_),
+    puedeParticiparDe(Concierto,Persona).
+
+%%PUNTO 4
+conoce(magurineLuka,hatsuneMiku).
+conoce(magurineLuka,gumi).
+conoce(gumi,seeU).
+conoce(seeU,kaito).
+
+esElUnicoQueParticipaDe(Persona,Concierto):-
+    puedeParticiparDe(Persona,Concierto),
+    conoce(Persona,otraPersona),
+    puedeParticiparDe(Persona,Concierto).
+
+%%PUNTO 5
+%Si agregamos un nuevo tipo de concierto solo habria que agregar
+%un nuevo requisitoConcierto para este nuevo tipo con sus
+%respectivos rquisitos correspondientes. El polimorfismo facilito
+%la implementacion ya que tipo es un functor pero todos los requisitoConcierto
+%es un predicado de aridad 2 para todos.
