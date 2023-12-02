@@ -1,0 +1,142 @@
+%%BASE DE CONOCIMIENTO
+% jugador(Nombre,Items,NivelHambre).
+jugador(stuart, [piedra, piedra, piedra, piedra, piedra, piedra, piedra, piedra], 3).
+jugador(tim, [madera, madera, madera, madera, madera, pan, carbon, carbon, carbon, pollo, pollo], 8).
+jugador(steve, [madera, carbon, carbon, diamante, panceta, panceta, panceta], 2).
+
+
+%lugar(Lugar,Jugadores,Oscuridad).
+
+lugar(playa, [stuart, tim], 2).
+lugar(mina, [steve], 8).
+lugar(bosque, [], 6).
+
+comestible(pan).
+comestible(panceta).
+comestible(pollo).
+comestible(pescado).
+
+%%PUNTO 1A
+tieneItem(Jugador,Item):-
+    jugador(Jugador,Items,_),
+    member(Item,Items).
+
+%%PUNTO 1B
+sePreocupaPorSuSalud(Jugador):-
+    poseeComestible(Jugador,Comestible),
+    poseeComestible(Jugador,OtroComestible),
+    Comestible \= OtroComestible.
+
+poseeComestible(Jugador,Comestible):-
+    comestible(Comestible),
+    tieneItem(Jugador,Comestible).
+
+%%PUNTO 1C
+cantidadDelItem(Jugador,Item,CantidadItem):-
+    jugador(Jugador,_,_),
+    existeItem(Item),
+    findall(Item,tieneItem(Jugador,Item),ListaItem),
+    length(ListaItem,CantidadItem).
+
+existeItem(Item):-
+    tieneItem(_,Item).    
+
+%%PUNTO 1D
+tieneMasDe(Jugador,Item):-
+    cantidadDelItem(Jugador,Item,CantidadItem),
+    not((cantidadDelItem(_,Item,OtraCantidad),CantidadItem<OtraCantidad)). 
+
+%%PUNTO 2A
+
+hayMonstruos(Lugar):-
+    lugar(Lugar,_,NivelOscuridad),
+    NivelOscuridad > 6.
+
+%%PUNTO 2B
+correPeligro(Jugador):-
+    lugar(Lugar,Jugadores,_),
+    member(Jugador,Jugadores),
+    hayMonstruos(Lugar).
+
+correPeligro(Jugador):-
+    estaHambriento(Jugador),
+    poseeComestible(Jugador,_).
+
+estaHambriento(Jugador):-
+    jugador(Jugador,_,NivelHambre),
+    NivelHambre < 4.
+
+%%PUNTO 2C
+nivelPeligrosidad(Lugar,Peligrosidad):-
+    cantidadPoblacion(Lugar,Poblacion),
+    not(hayMonstruos(Lugar)),
+    cantidadHambrientos(Lugar,CantidadHambrientos),
+    Peligrosidad is CantidadHambrientos * 100 / Poblacion.
+
+nivelPeligrosidad(Lugar,100):-
+    hayMonstruos(Lugar).
+
+nivelPeligrosidad(Lugar,Peligrosidad):-
+    lugar(Lugar,_,NivelOscuridad),
+    not(estaPoblado(Lugar)),
+    Peligrosidad is NivelOscuridad * 10.
+
+cantidadHambrientos(Lugar,CantidadHambrientos):-
+    findall(Hambriento,hambrientoDelLugar(Lugar,Hambriento),Hambrientos),
+    length(Hambrientos,CantidadHambrientos).
+
+hambrientoDelLugar(Lugar,Hambriento):-
+    lugar(Lugar,Jugadores,_),
+    member(Hambriento,Jugadores),
+    estaHambriento(Hambriento).
+
+estaPoblado(Lugar):-
+    lugar(Lugar,Jugadores,_),
+    length(Jugadores,Cantidad),
+    Cantidad > 0.
+
+cantidadPoblacion(Lugar,Poblacion):-
+    lugar(Lugar,Jugadores,_), 
+    length(Jugadores,Poblacion),
+    Poblacion \= 0.
+
+%%PUNTO 3
+item(horno, [ itemSimple(piedra, 8) ]).
+item(placaDeMadera, [ itemSimple(madera, 1) ]).
+item(palo, [ itemCompuesto(placaDeMadera) ]).
+item(antorcha, [ itemCompuesto(palo), itemSimple(carbon, 1) ]).
+
+puedeConstruir(Jugador,ConstruyeItem):-
+    tieneSimple(ConstruyeItem,Item,CantidadNecesaria),
+    tieneItem(Jugador,Item),
+    cantidadDelItem(Jugador,Item,Cantidad),
+    Cantidad >= CantidadNecesaria.
+
+puedeConstruir(Jugador,ConstruyeItem):-
+    tieneCompuesto(ConstruyeItem,Item),
+    puedeConstruir(Jugador,Item).
+
+tieneSimple(ConstruyeItem,Item,CantidadNecesaria):-
+    item(ConstruyeItem,Necesita),
+    member(Simple,Necesita),
+    simple(Simple,Item,CantidadNecesaria).
+
+tieneCompuesto(ConstruyeItem,Item):-
+    item(ConstruyeItem,Necesita),
+    member(Compuesto,Necesita),
+    compuesto(Compuesto,Item).
+
+simple(itemSimple(Item,Cantidad),Item,Cantidad).
+
+compuesto(itemCompuesto(Item),Item).
+
+%%PUNTO 4A
+%%Si se consulta el nivel de peligrosidad del desierto resultara
+%%falso ya que la base de conocimiento no lo reconoce como un lugar
+%%existente. Esto se debe a la inversibilidad ya que el predicado no 
+%%lo toma como una respuesta para el predicado.
+
+%%PUNTO 4B
+%%La ventaja que nos ofrece el paradigma logico a la hora de la consulta
+%%son las multiples respuestas posibles para volver cierto un predicado
+%%pudiendo asi utilizarlas sin necesidad de crear funciones que busquen.
